@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import formbody from '@fastify/formbody';
 import { FastifyRequest } from 'fastify';
+import {getAllReservations, getReservationsByUserId, getUserByCredentials} from './database.memory'
 
 interface LoginDTO {
     username: string;
@@ -30,27 +31,12 @@ interface Payload {
 const fastify = Fastify({ logger: true });
 
 // Register formbody plugin
-fastify.register(formbody);
+        fastify.register(formbody);
 // Register JWT plugin
 fastify.register(fastifyJwt, {
     secret: 'supersecret',
     
 });
-
-// In-memory table of reservations
-const reservations: Reservation[] = [
-    { id: 1, name: 'John Doe', time: '18:00', user_id: 2 },
-    { id: 2, name: 'Jane Smith', time: '19:00', user_id: 1 },
-    { id: 3, name: 'Alice Johnson', time: '20:00', user_id: 3 }
-];
-
-// In-memory user data
-// in a real application, the password should be hashed and stored securely
-const users: User[] = [
-    { id: 1, username: 'admin', password: 'a-really-tough-password', role: 'admin' },
-    { id: 2, username: 'user12', password: 'password1', role: 'user' },
-    { id: 3, username: 'user43', password: 'password2', role: 'user' }
-];
 
 const payloadFactory = ({role, id}: User): Payload => {
     // switch case to return payload based on role
@@ -80,18 +66,18 @@ fastify.get('/reservations', async (request, reply) => {
     console.log('user', payload);
     if (payload.typ === 'admin')
     {
+        const reservations = getAllReservations() as Reservation[];
         return reply.status(200).send({reservations});
     }
-    const user_reservations = reservations.filter( ({user_id}) => user_id === payload.uid);
+    const reservations = getReservationsByUserId(payload.uid);
     
-    return reply.status(200).send({reservations: user_reservations});
+    return reply.status(200).send({reservations});
 });
 
 // Route to login and get a token
 fastify.post('/login', async (request: FastifyRequest<{ Body: LoginDTO }>, reply) => {
     const { username, password } = request.body;
-
-    const user = users.find(user => user.username === username && user.password === password);
+    const user = getUserByCredentials(username, password) as User; // instance #2
     if (user) { 
         const token = fastify.jwt.sign(payloadFactory(user));
         return reply.status(201).send({ token });
