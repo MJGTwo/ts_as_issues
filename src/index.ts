@@ -19,6 +19,7 @@ interface Reservation {
     id: number;
     name: string;
     time: string;
+    user_id: number;
 }
 
 interface Payload {
@@ -38,9 +39,9 @@ fastify.register(fastifyJwt, {
 
 // In-memory table of reservations
 const reservations: Reservation[] = [
-    { id: 1, name: 'John Doe', time: '18:00' },
-    { id: 2, name: 'Jane Smith', time: '19:00' },
-    { id: 3, name: 'Alice Johnson', time: '20:00' }
+    { id: 1, name: 'John Doe', time: '18:00', user_id: 2 },
+    { id: 2, name: 'Jane Smith', time: '19:00', user_id: 1 },
+    { id: 3, name: 'Alice Johnson', time: '20:00', user_id: 3 }
 ];
 
 // In-memory user data
@@ -51,15 +52,15 @@ const users: User[] = [
     { id: 3, username: 'user43', password: 'password2', role: 'user' }
 ];
 
-const payloadFactory = ({role, id}: User): Payload | {} => {
+const payloadFactory = ({role, id}: User): Payload => {
     // switch case to return payload based on role
     switch (role) {
         case 'admin':
-            return { typ: 'admin', uid: id };
+            return { typ: 'admin', uid: id};
         case 'user':
             return { typ: 'user', uid: id };
-        default:null
-            return {};
+        default:
+            throw new Error('Invalid role');
     } 
 }
 
@@ -75,7 +76,15 @@ fastify.addHook('onRequest', async (request, reply) => {
 
 // Route to get reservations
 fastify.get('/reservations', async (request, reply) => {
-    return reservations;
+    const payload: Payload = request.user as Payload; // instance #1
+    console.log('user', payload);
+    if (payload.typ === 'admin')
+    {
+        return reply.status(200).send({reservations});
+    }
+    const user_reservations = reservations.filter( ({user_id}) => user_id === payload.uid);
+    
+    return reply.status(200).send({reservations: user_reservations});
 });
 
 // Route to login and get a token
@@ -85,7 +94,7 @@ fastify.post('/login', async (request: FastifyRequest<{ Body: LoginDTO }>, reply
     const user = users.find(user => user.username === username && user.password === password);
     if (user) { 
         const token = fastify.jwt.sign(payloadFactory(user));
-        return { token };
+        return reply.status(201).send({ token });
     }
 
     reply.status(401).send({ error: 'Unauthorized' });
