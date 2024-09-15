@@ -10,13 +10,14 @@ interface DbEntryReservation {
     name: string;
     time: string;
     user_id: number;
+    phone: string;
 }
 
 // In-memory table of reservations
 const reservations: DbEntryReservation[] = [
-    { id: 1, name: 'John Doe', time: '18:00', user_id: 2 },
-    { id: 2, name: 'Jane Smith', time: '19:00', user_id: 1 },
-    { id: 3, name: 'Alice Johnson', time: '20:00', user_id: 3 }
+    { id: 1, name: 'John Doe', time: '18:00', user_id: 2, phone: '123-4567' },
+    { id: 2, name: 'Jane Smith', time: '19:00', user_id: 1, phone: '234-5678' },
+    { id: 3, name: 'Alice Johnson', time: '20:00', user_id: 3, phone: '345-6789' }
 ];
 
 // In-memory user data
