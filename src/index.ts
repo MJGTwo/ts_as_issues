@@ -92,14 +92,13 @@ fastify.addHook('onRequest', async (request, reply) => {
 
 // Route to get reservations
 fastify.get('/reservations', async (request, reply) => {
-    const payload: DecodedAuthToken = request.user as DecodedAuthToken; // instance type #1
-    console.log('user', payload);
-    if (payload.typ === 'admin')
+    const userToken: DecodedAuthToken = request.user as DecodedAuthToken; // instance type #1
+    if (userToken.typ === 'admin')
     {
         const reservations = getAllReservations() as Reservation[];
         return reply.status(200).send({reservations});
     }
-    const reservations = getReservationsByUserId(payload.uid);
+    const reservations = getReservationsByUserId(userToken.uid);
     
     return reply.status(200).send({reservations});
 });
@@ -111,7 +110,7 @@ fastify.get('/reservations', async (request, reply) => {
 // the payload will also include the phone number
 // if the user is a regular user, they can only make a reservation for themselves
 fastify.post('/reservations', async (request: FastifyRequest<{ Body:ReservationDTO }>, reply) => {
-    const userToken: DecodedAuthToken = request.user as DecodedAuthToken;
+    const userToken: DecodedAuthToken = request.user as DecodedAuthToken; // instance type #1
     const reservation = reservationFactory(request.body, userToken);
     createReservation(reservation);
     return reply.status(201).send({ reservation });
